@@ -11,29 +11,44 @@ const database = process.env.MYDATABASE;
 
 
 
-const db = mysql.createConnection({
+// const db = mysql.createConnection({
+//     host: host,
+//     user: user,
+//     password: password,
+//     database: database,
+// });
+
+const pool = mysql.createPool({ 
+    connectionLimit: 5, 
     host: host,
     user: user,
     password: password,
     database: database,
-});
+    }); 
 
-db.connect(function (err) {
-    if (err) throw err;
-    console.log('MySql Connected...');
-});
+    pool.on('acquire', function (connection) {
+        console.log('Connection %d acquired', connection.threadId);
+      });
+
+
 
 app.get('/', (req, res) => {
-    const sql = 'SELECT * FROM Songs';
-
-        db.query(sql, (err, result) => {
-            if(err) throw err;
-            console.log(result)
-            res.send(result);
+    pool.getConnection((err,conn) =>{
+        if(err){
+            res.send('Error Occured')
+        }
+        else {
+            conn.query("SELECT * FROM Songs", (err2, records, fields) =>{
+                if(!err2){
+                    res.send(records)
+                }
+                conn.release()
+            })
+        }
+    })
         });
 
     
-});
 app.get("/2", (req,res) => {
     res.send("This is the other page!")
 })
